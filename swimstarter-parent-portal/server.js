@@ -181,15 +181,22 @@ function shapeChild(rec) {
 }
 
 // Find empty (bookable) Timetable rows: no student linked AND no Timetable Date.
+// We filter emptiness in JS (Airtable BLANK() checks on linked fields are unreliable).
 async function emptyRows({ coach, day, timeslot }) {
-  const clauses = ["{Enrolled} = BLANK()", "{Timetable Date} = BLANK()"];
+  const clauses = [];
   if (coach) clauses.push(`{Coach (string)} = '${esc(coach)}'`);
   if (day) clauses.push(`{Day} = '${esc(day)}'`);
   if (timeslot) clauses.push(`{Timeslot} = '${esc(timeslot)}'`);
-  return selectAll(T.TIMETABLE, {
-    filterByFormula: `AND(${clauses.join(",")})`,
-    fields: ["Day", "Timeslot", "Pool", "Coach (string)", "Category"],
+  const opts = {
+    fields: ["Day", "Timeslot", "Pool", "Coach (string)", "Category", "Enrolled", "Timetable Date"],
     pageSize: 200,
+  };
+  if (clauses.length) opts.filterByFormula = clauses.length === 1 ? clauses[0] : `AND(${clauses.join(",")})`;
+  const rows = await selectAll(T.TIMETABLE, opts);
+  return rows.filter((r) => {
+    const enr = r.get("Enrolled");
+    const hasStudent = Array.isArray(enr) ? enr.length > 0 : !!enr;
+    return !hasStudent && !r.get("Timetable Date");
   });
 }
 
@@ -312,7 +319,7 @@ app.post("/api/book-extra", auth, async (req, res) => {
 
     // Consecutive booking? Reuse the child's existing extra-lesson row for this slot.
     const existing = await selectAll(T.TIMETABLE, {
-      filterByFormula: `AND({Coach (string)}='${esc(coach)}',{Day}='${esc(day)}',{Timeslot}='${esc(timeslot)}',{Category}='extra lesson',FIND('${esc(childName)}',{Enrolled}&''))`,
+      filterByFormula: `AND({Day}='${esc(day)}',{Timeslot}='${esc(timeslot)}',{Category}='extra lesson',FIND('${esc(childName)}',{Enrolled}&''))`,
       fields: ["Day", "Timeslot", "Pool", "Timetable Date"],
       pageSize: 5,
     });
