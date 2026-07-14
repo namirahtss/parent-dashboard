@@ -189,7 +189,7 @@ async function emptyRows({ coach, day, timeslot }) {
   if (timeslot) clauses.push(`{Timeslot} = '${esc(timeslot)}'`);
   const opts = {
     fields: ["Day", "Timeslot", "Pool", "Coach (string)", "Category", "Enrolled", "Timetable Date"],
-    pageSize: 200,
+    pageSize: 100,
   };
   if (clauses.length) opts.filterByFormula = clauses.length === 1 ? clauses[0] : `AND(${clauses.join(",")})`;
   const rows = await selectAll(T.TIMETABLE, opts);
@@ -448,7 +448,7 @@ app.get("/api/attendance", auth, async (req, res) => {
     const childName = child.get("Name of Child") || "";
     const records = await selectAll(T.ATTENDANCE, {
       filterByFormula: `FIND('${Number(req.phone)}', ARRAYJOIN({Phone Number (from Student)}))`,
-      fields: ["Name of Child", "Date", "Lesson Date", "Present", "Absent", "Location", "Day", "Time", "Coach", "Stage"],
+      fields: ["Student", "Date", "Lesson Date", "Present", "Absent", "Location", "Day", "Time", "Coach", "Stage"],
       sort: [{ field: "Date", direction: "desc" }], pageSize: 100,
     });
     const rows = records.map((r) => ({
@@ -456,7 +456,7 @@ app.get("/api/attendance", auth, async (req, res) => {
       present: !!r.get("Present"), absent: !!r.get("Absent"),
       location: asName(r.get("Location")), day: asName(r.get("Day")), time: asName(r.get("Time")),
       coach: asName(r.get("Coach")), stage: asNameList(r.get("Stage"))[0] || null,
-      _child: asNameList(r.get("Name of Child"))[0] || "",
+      _child: asNameList(r.get("Student"))[0] || "",
     })).filter((row) => (!childName || !row._child || row._child === childName) && row.date)
       .slice(0, 25).map(({ _child, ...row }) => row);
     res.json({ attendance: rows });
@@ -516,11 +516,11 @@ async function runRollover() {
   // 1) Extra-lesson rows whose date has passed.
   const passed = await selectAll(T.TIMETABLE, {
     filterByFormula: `AND({Category}='extra lesson',{Timetable Date}!=BLANK(),IS_BEFORE({Timetable Date},TODAY()))`,
-    fields: ["Timetable Date"], pageSize: 200,
+    fields: ["Timetable Date"], pageSize: 100,
   });
   // Preload confirmed ELC logs to find future dates per timetable row.
   const logs = await selectAll(T.ELC_LOG, {
-    filterByFormula: `{Status}='Confirmed'`, fields: ["Date", "timetable recordid"], pageSize: 1000,
+    filterByFormula: `{Status}='Confirmed'`, fields: ["Date", "timetable recordid"], pageSize: 100,
   });
   const futureByRow = {};
   for (const l of logs) {
@@ -543,7 +543,7 @@ async function runRollover() {
   const changes = await selectAll(T.CLASS_CHANGE, {
     filterByFormula: `AND({Class Change Status}='Confirmed',NOT({Class Change confirmation sent?}),{Effective Date}!=BLANK(),NOT(IS_AFTER({Effective Date},TODAY())))`,
     fields: ["Student", "OG Day", "OG Time", "OG Location", "New Day (wef effective date)", "New Time (wef effective date)", "New Location (wef effective date)", "student record id"],
-    pageSize: 200,
+    pageSize: 100,
   });
   for (const c of changes) {
     const studentId = asNameList(c.get("student record id"))[0] || (Array.isArray(c.get("Student")) ? c.get("Student")[0] : null);
