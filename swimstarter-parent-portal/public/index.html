@@ -5,7 +5,346 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b6fb8" />
   <title>TheSwimStarter — Parent Portal</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <style>
+:root {
+  --blue: #0b6fb8;
+  --blue-dark: #075490;
+  --blue-soft: #e7f2fb;
+  --aqua: #16b1c9;
+  --ink: #14202b;
+  --muted: #6b7c8c;
+  --line: #e4eaf0;
+  --bg: #f4f7fa;
+  --card: #ffffff;
+  --green: #1f9d55;
+  --amber: #d9820a;
+  --red: #d64545;
+  --radius: 16px;
+  --shadow: 0 4px 18px rgba(16, 52, 84, 0.08);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* Ensure the hidden attribute always wins over display rules (modal/toast) */
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 16px; }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ---------- login ---------- */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  background: linear-gradient(160deg, var(--blue) 0%, var(--aqua) 100%);
+}
+.brand { text-align: center; color: #fff; margin-bottom: 26px; }
+.brand-logo { font-size: 52px; }
+.brand h1 { margin: 6px 0 0; font-size: 26px; letter-spacing: -0.3px; }
+.brand-sub { margin: 2px 0 0; opacity: 0.9; font-weight: 500; }
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card label { font-weight: 600; font-size: 14px; }
+
+/* ---------- form fields (global, clean look) ---------- */
+input[type="text"], input[type="tel"], input[type="email"], input[type="number"],
+input[type="date"], input:not([type]), select, textarea {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 14px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+input::placeholder, textarea::placeholder { color: #9aa8b5; }
+
+/* custom dropdown chevron so selects don't look like native OS controls */
+select {
+  padding-right: 42px;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'16'%20height%3D'16'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'%230b6fb8'%20stroke-width%3D'2.5'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpolyline%20points%3D'6%209%2012%2015%2018%209'%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+/* let the native date picker indicator stay usable */
+input[type="date"] { -webkit-appearance: none; }
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
+.hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; text-align: center; }
+
+/* ---------- buttons ---------- */
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+}
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:active { background: var(--blue-dark); }
+.btn-primary:disabled { opacity: 0.6; }
+.btn-ghost { background: var(--blue-soft); color: var(--blue-dark); }
+.btn-danger { background: #fdecec; color: var(--red); }
+.btn-sm { padding: 10px 12px; font-size: 14px; width: auto; }
+
+.error-msg { color: var(--red); font-size: 14px; margin: 2px 0 0; text-align: center; }
+
+/* ---------- app shell ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--blue);
+  color: #fff;
+  padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hello { font-size: 12px; opacity: 0.85; }
+.app-title { font-size: 20px; font-weight: 700; }
+.icon-btn {
+  background: rgba(255,255,255,0.18); color: #fff; border: none;
+  width: 38px; height: 38px; border-radius: 10px; font-size: 18px;
+}
+
+.child-switcher {
+  display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px;
+  background: #fff; border-bottom: 1px solid var(--line);
+}
+.chip {
+  border: 1.5px solid var(--line); background: #fff; color: var(--muted);
+  border-radius: 999px; padding: 8px 14px; white-space: nowrap; font-weight: 600; font-size: 14px;
+}
+.chip.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+main#views { padding: 16px 16px 96px; max-width: 640px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* ---------- cards / lists ---------- */
+.panel {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px; margin-bottom: 14px;
+}
+.panel h3 { margin: 0 0 12px; font-size: 16px; }
+.section-label { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin: 18px 4px 8px; }
+
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.kv:last-child { border-bottom: none; }
+.kv .k { color: var(--muted); font-size: 14px; }
+.kv .v { font-weight: 600; text-align: right; }
+
+.credit-row { display: flex; gap: 12px; }
+.credit {
+  flex: 1; background: var(--blue-soft); border-radius: 14px; padding: 14px; text-align: center;
+}
+.credit .num { font-size: 30px; font-weight: 800; color: var(--blue-dark); line-height: 1; }
+.credit .lbl { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.badge.green { background: #e3f6ea; color: var(--green); }
+.badge.amber { background: #fdf0dd; color: var(--amber); }
+.badge.red { background: #fdecec; color: var(--red); }
+.badge.blue { background: var(--blue-soft); color: var(--blue-dark); }
+
+.tag { display:inline-block; background: var(--blue-soft); color: var(--blue-dark); border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: 600; margin: 2px 4px 2px 0; }
+
+/* grid of actions on home */
+.actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.action-tile {
+  background: var(--card); border-radius: 14px; box-shadow: var(--shadow); border: none;
+  padding: 16px 12px; text-align: left; display: flex; flex-direction: column; gap: 8px;
+}
+.action-tile .emoji { font-size: 24px; }
+.action-tile .t { font-weight: 700; font-size: 15px; }
+.action-tile .d { font-size: 12px; color: var(--muted); }
+
+/* slot list */
+.slot {
+  border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff;
+}
+.slot.selected { border-color: var(--blue); background: var(--blue-soft); }
+.slot .meta { font-size: 13px; color: var(--muted); }
+.slot .title { font-weight: 700; }
+
+.att-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.att-row:last-child { border-bottom: none; }
+.att-row .d { font-size: 13px; color: var(--muted); }
+
+textarea { min-height: 110px; resize: vertical; }
+
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.spacer { height: 8px; }
+.empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+/* checkbox pills */
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px;
+  font-weight: 600; color: var(--muted); background: #fff; text-align: left; line-height: 1.3;
+}
+.pill.on { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
+
+/* ---------- tabbar ---------- */
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+  background: #fff; border-top: 1px solid var(--line);
+  display: flex; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  max-width: 640px; margin: 0 auto;
+}
+.tab {
+  flex: 1; border: none; background: none; color: var(--muted);
+  font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 0;
+}
+.tab span { font-size: 20px; }
+.tab.active { color: var(--blue); }
+
+/* ---------- toast + modal ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+  background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 12px;
+  font-size: 14px; z-index: 50; max-width: 90%; box-shadow: var(--shadow);
+}
+.toast.err { background: var(--red); }
+.toast.ok { background: var(--green); }
+
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(10,25,40,0.5); z-index: 40;
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: #fff; width: 100%; max-width: 640px; border-radius: 20px 20px 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto;
+}
+.modal h3 { margin-top: 0; }
+
+.loader { text-align: center; padding: 40px; color: var(--muted); }
+
+/* ---------- button + field polish ---------- */
+.btn {
+  box-shadow: 0 1px 2px rgba(16, 52, 84, 0.06);
+  transition: transform .06s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { box-shadow: 0 3px 12px rgba(11, 111, 184, 0.22); }
+.btn-primary:hover { background: var(--blue-dark); }
+.btn-ghost { border: 1.5px solid #cfe0ee; }
+.btn-ghost:hover { background: #dcebf7; }
+.btn-danger:hover { background: #fbdcdc; }
+a.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+
+/* the child's pool open/closed pill sits inline next to the location */
+#pool-status .badge { margin-left: 6px; }
+
+/* payment: make each child a clean, spacious card */
+.pay-card { }
+.pay-dates { display: flex; gap: 12px; margin: 4px 0 14px; }
+.pay-date {
+  flex: 1; background: var(--blue-soft); border-radius: 12px; padding: 12px 14px;
+}
+.pay-date .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+.pay-date .val { font-weight: 700; margin-top: 3px; }
+
+/* support category chips a touch cleaner */
+.pill { transition: border-color .12s, background .12s, color .12s; }
+
+/* selected/disabled slots */
+.slot.selected { border-color: var(--blue); background: var(--blue-soft); }
+.slot.disabled { opacity: 0.55; }
+.slot.disabled .badge { }
+
+/* tab labels can wrap to 2 lines cleanly */
+.tab { text-align: center; line-height: 1.1; font-size: 10.5px; }
+.tab span { font-size: 19px; margin-bottom: 1px; }
+
+/* ---------- desktop sidebar (hidden on mobile) ---------- */
+.sidebar { display: none; flex-direction: column; }
+.side-brand { display: flex; align-items: center; gap: 10px; padding: 20px 18px; border-bottom: 1px solid var(--line); }
+.side-logo { font-size: 28px; }
+.side-title { font-weight: 800; font-size: 16px; }
+.side-sub { font-size: 12px; color: var(--muted); }
+.side-nav { display: flex; flex-direction: column; gap: 4px; padding: 14px 12px; flex: 1; }
+.side-nav .navbtn {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  background: none; border: none; padding: 12px 14px; border-radius: 10px;
+  font-size: 15px; font-weight: 600; color: var(--ink);
+}
+.side-nav .navbtn span { font-size: 18px; }
+.side-nav .navbtn:hover { background: var(--blue-soft); }
+.side-nav .navbtn.active { background: var(--blue); color: #fff; }
+.side-foot { padding: 16px; border-top: 1px solid var(--line); }
+.side-user { font-weight: 700; margin-bottom: 10px; }
+
+/* ---------- tablet: keep login comfortable ---------- */
+@media (min-width: 720px) {
+  body { background: #eef2f6; }
+  .login-wrap { padding: 48px 20px; }
+  .login-wrap .brand, .login-wrap form { width: 100%; max-width: 420px; margin-left: auto; margin-right: auto; }
+}
+
+/* ---------- desktop: full sidebar layout ---------- */
+@media (min-width: 900px) {
+  body { background: #eef2f6; }
+  #app-screen.active { display: block; min-height: 100vh; }
+
+  .sidebar {
+    display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 250px;
+    background: #fff; border-right: 1px solid var(--line); z-index: 20;
+  }
+  .app-main { margin-left: 250px; min-height: 100vh; background: var(--bg); }
+
+  .tabbar { display: none; }
+
+  /* top bar becomes a light header inside the content area */
+  .app-header {
+    position: sticky; top: 0; background: #fff; color: var(--ink);
+    border-bottom: 1px solid var(--line); padding: 18px 32px; z-index: 10;
+  }
+  .app-header .hello { color: var(--muted); }
+  .app-header .app-title { color: var(--ink); }
+  .app-header .icon-btn { display: none; }
+
+  #child-switcher { padding: 14px 32px; }
+  main#views { max-width: 1000px; margin: 0 auto; padding: 26px 32px 48px; }
+
+  .actions-grid { grid-template-columns: repeat(3, 1fr); }
+  /* two-column panels read better on wide screens */
+  .credit { padding: 18px; }
+}
+
+@media (min-width: 1200px) {
+  main#views { max-width: 1080px; }
+}
+
+</style>
 </head>
 <body>
   <!-- LOGIN -->
@@ -84,6 +423,489 @@
     <div class="modal" id="modal"></div>
   </div>
 
-  <script src="/app.js"></script>
+  <script>
+// TheSwimStarter Parent Portal — frontend (v2)
+const state = {
+  token: null, parentName: "", children: [], activeChildId: null,
+  view: "home", pauseReasons: [], slotsCache: {},
+};
+
+const $ = (s, r = document) => r.querySelector(s);
+const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function saveSession() { try { localStorage.setItem("tss_token", state.token || ""); } catch {} }
+function loadSession() { try { return localStorage.getItem("tss_token") || null; } catch { return null; } }
+function clearSession() { try { localStorage.removeItem("tss_token"); } catch {} }
+
+function toast(msg, kind = "") {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast " + kind; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3400);
+}
+
+async function api(path, { method = "GET", body } = {}) {
+  const res = await fetch("/api" + path, {
+    method, headers: { "Content-Type": "application/json", ...(state.token ? { Authorization: "Bearer " + state.token } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = {}; try { data = await res.json(); } catch {}
+  if (res.status === 401) { logout(); throw new Error(data.error || "Session expired"); }
+  if (!res.ok) throw new Error(data.error || "Something went wrong");
+  return data;
+}
+
+const activeChild = () => state.children.find((c) => c.id === state.activeChildId) || state.children[0] || null;
+
+// ---------- auth ----------
+async function doLogin(phone) {
+  const data = await api("/login", { method: "POST", body: { phone } });
+  state.token = data.token; saveSession(); await bootApp();
+}
+function logout() {
+  state.token = null; state.children = []; clearSession();
+  $("#app-screen").classList.remove("active"); $("#login-screen").classList.add("active"); $("#phone").value = "";
+}
+async function bootApp() {
+  const me = await api("/me");
+  state.parentName = me.parentName || "Parent"; state.children = me.children || [];
+  state.activeChildId = state.children[0]?.id || null;
+  try { state.pauseReasons = (await api("/pause-reasons")).reasons || []; } catch {}
+  $("#login-screen").classList.remove("active"); $("#app-screen").classList.add("active");
+  $("#hello").textContent = "Hello, " + (state.parentName || "Parent");
+  const su = $("#side-user"); if (su) su.textContent = state.parentName || "Parent";
+  renderChildSwitcher(); switchView("home");
+}
+
+function renderChildSwitcher() {
+  const wrap = $("#child-switcher");
+  if (state.children.length <= 1) { wrap.hidden = true; return; }
+  wrap.hidden = false; wrap.innerHTML = "";
+  state.children.forEach((c) => {
+    const b = el(`<button class="chip ${c.id === state.activeChildId ? "active" : ""}">${esc(c.childName || "Child")}</button>`);
+    b.onclick = () => { state.activeChildId = c.id; renderChildSwitcher(); renderView(); };
+    wrap.appendChild(b);
+  });
+}
+
+const TITLES = { home: "Home", book: "Class Booking", schedule: "Class Schedule", payment: "Payment", more: "More" };
+function switchView(view) {
+  state.view = view; $("#page-title").textContent = TITLES[view] || "";
+  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+  $("#view-" + view)?.classList.add("active");
+  document.querySelectorAll(".navbtn").forEach((t) => t.classList.toggle("active", t.dataset.view === view));
+  window.scrollTo(0, 0); renderView();
+}
+function renderView() { VIEWS[state.view]?.(); }
+const VIEWS = {};
+
+// ---------- HOME: notices + editable profile + read-only stage/progress/attendance ----------
+VIEWS.home = async function () {
+  const c = activeChild(); const root = $("#view-home");
+  if (!c) { root.innerHTML = `<div class="empty">No enrolment found.</div>`; return; }
+  root.innerHTML = `
+    <div class="section-label" style="margin-top:0">My child</div>
+    <div class="panel" id="profile-panel"></div>
+    <div class="section-label">Progress &amp; level</div>
+    <div class="panel" id="progress-panel">
+      <div class="kv"><span class="k">Current stage / level</span><span class="v">${esc(c.testLevel || "—")}</span></div>
+      <div class="kv"><span class="k">Latest test result</span><span class="v">${esc(c.testResult || "—")}</span></div>
+      <div class="kv"><span class="k">Coach</span><span class="v">${esc(c.coach || "—")}</span></div>
+      <div class="kv"><span class="k">Class</span><span class="v">${esc((c.lessonDay||[]).join(", ")||"—")} ${esc((c.timeslot||[]).join(", "))}</span></div>
+      <div style="margin-top:10px" class="section-label" >Certificates</div>
+      <div>${(c.certificates||[]).length ? c.certificates.map((x)=>`<span class="tag">${esc(x)}</span>`).join("") : `<span class="muted">None recorded yet.</span>`}</div>
+    </div>
+    <div id="home-notices"></div>
+    <div class="section-label">Attendance</div>
+    <div class="panel" id="att-panel"><div class="loader">Loading…</div></div>`;
+  renderProfilePanel(c);
+  loadAttendanceInto("#att-panel", c);
+  loadNoticesAndPool(c);
+};
+
+function renderProfilePanel(c, editing = false) {
+  const p = $("#profile-panel"); if (!p) return;
+  if (!editing) {
+    p.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <h3 style="margin:0">${esc(c.childName)}</h3>
+        ${enrolBadge(c.enrolmentStatus)}
+      </div>
+      <div class="kv"><span class="k">Age</span><span class="v">${c.age != null ? c.age + " yrs" : "—"}${c.dob ? " · " + fmtDate(c.dob) : ""}</span></div>
+      <div class="kv"><span class="k">Pool location</span><span class="v">${esc(c.location || "—")} <span id="pool-status"></span></span></div>
+      <div class="kv"><span class="k">Phone number</span><span class="v">${esc(c.phoneNumber || "—")}</span></div>
+      <div class="kv"><span class="k">Alt. phone</span><span class="v">${esc(c.altNumber || "—")}</span></div>
+      <div class="kv"><span class="k">Parent name</span><span class="v">${esc(c.parentName || "—")}</span></div>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="edit-profile">Edit details</button>`;
+    $("#edit-profile").onclick = () => renderProfilePanel(c, true);
+  } else {
+    p.innerHTML = `
+      <h3 style="margin-top:0">Edit details</h3>
+      <label class="section-label" style="margin-top:0">Child's name</label>
+      <input id="pf-name" value="${esc(c.childName || "")}" />
+      <div class="spacer"></div>
+      <label class="section-label">Date of birth</label>
+      <input id="pf-dob" type="date" value="${esc(c.dob || "")}" />
+      <div class="spacer"></div>
+      <label class="section-label">Phone number</label>
+      <input id="pf-phone" type="tel" inputmode="numeric" value="${esc(c.phoneNumber || "")}" />
+      <div class="spacer"></div>
+      <label class="section-label">Alternate phone</label>
+      <input id="pf-alt" type="tel" inputmode="numeric" value="${esc(c.altNumber || "")}" />
+      <div class="spacer"></div>
+      <label class="section-label">Parent name</label>
+      <input id="pf-parent" value="${esc(c.parentName || "")}" />
+      <div class="hint" style="text-align:left">Note: changing the phone number changes the number you log in with.</div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="pf-save">Save changes</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="pf-cancel">Cancel</button>`;
+    $("#pf-cancel").onclick = () => renderProfilePanel(activeChild(), false);
+    $("#pf-save").onclick = async () => {
+      const btn = $("#pf-save"); btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const r = await api("/profile", { method: "POST", body: {
+          childId: c.id, childName: $("#pf-name").value, dob: $("#pf-dob").value,
+          phoneNumber: $("#pf-phone").value, altNumber: $("#pf-alt").value, parentName: $("#pf-parent").value,
+        }});
+        const idx = state.children.findIndex((x) => x.id === c.id);
+        if (idx >= 0 && r.child) state.children[idx] = r.child;
+        toast("Details saved.", "ok"); renderChildSwitcher(); renderProfilePanel(r.child || activeChild(), false);
+      } catch (e) { toast(e.message, "err"); btn.disabled = false; btn.textContent = "Save changes"; }
+    };
+  }
+}
+
+async function loadAttendanceInto(sel, c) {
+  const box = $(sel); if (!box) return;
+  try {
+    const data = await api("/attendance?childId=" + encodeURIComponent(c.id));
+    if (!data.attendance.length) { box.innerHTML = `<div class="empty">No attendance records yet.</div>`; return; }
+    box.innerHTML = data.attendance.map((a) => `
+      <div class="att-row">
+        <div><div style="font-weight:600">${fmtDate(a.date) || "—"}</div>
+        <div class="d">${esc([a.day, a.time, a.location].filter(Boolean).join(" · "))}${a.coach ? " · Coach " + esc(a.coach) : ""}</div></div>
+        ${a.present ? `<span class="badge green">Present</span>` : a.absent ? `<span class="badge red">Absent</span>` : `<span class="badge blue">—</span>`}
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// Home: render announcements only, and set the child's own pool open/closed badge.
+async function loadNoticesAndPool(c) {
+  const box = $("#home-notices");
+  if (box) box.innerHTML = `<div class="section-label">Announcements</div><div class="panel"><div class="loader">Loading…</div></div>`;
+  try {
+    const data = await api("/announcements");
+
+    // pool open/closed badge for the child's location only
+    const ps = $("#pool-status");
+    if (ps && c && c.location) {
+      const mine = (data.pool || []).find((p) => p.location && p.location.toLowerCase() === c.location.toLowerCase());
+      if (mine) {
+        const open = /open|yes/i.test(mine.canEnter || mine.status || "");
+        ps.innerHTML = `<span class="badge ${open ? "green" : "red"}">${open ? "Open" : "Closed"}</span>`;
+      }
+    }
+
+    // announcements list
+    let html = `<div class="section-label">Announcements</div>`;
+    const items = (data.announcements || []).slice(0, 4);
+    if (!items.length) {
+      html += `<div class="panel"><div class="empty">No announcements right now.</div></div>`;
+    } else {
+      items.forEach((a) => {
+        html += `<div class="panel">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <strong>${esc(a.title || "Notice")}</strong>
+            ${a.priority ? `<span class="badge ${/high|urgent/i.test(a.priority) ? "red" : "blue"}">${esc(a.priority)}</span>` : ""}
+          </div>
+          <div class="muted" style="font-size:12px;margin:4px 0 6px">${fmtDate(a.date) || ""}</div>
+          <div style="white-space:pre-wrap">${esc(a.body || "")}</div></div>`;
+      });
+    }
+    if (box) box.innerHTML = html;
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="section-label">Announcements</div><div class="panel"><div class="empty">${esc(e.message)}</div></div>`;
+  }
+}
+
+// ---------- CLASS BOOKING: day -> date -> timeslot(slots left) ----------
+VIEWS.book = async function () {
+  const c = activeChild(); const root = $("#view-book");
+  const canBook = c && (c.extraLessonCredits > 0 || c.bonusCredits > 0);
+  root.innerHTML = `
+    <div class="panel">
+      <h3>Your credits — ${esc(c?.childName || "")}</h3>
+      <div class="credit-row">
+        <div class="credit"><div class="num">${c?.extraLessonCredits ?? 0}</div><div class="lbl">Extra Lesson Credits</div></div>
+        <div class="credit"><div class="num">${c?.bonusCredits ?? 0}</div><div class="lbl">Bonus Credits</div></div>
+      </div>
+      ${canBook ? `<p class="hint" style="text-align:left">Choose a day, then a date (within 2 weeks), then a timeslot. One credit is used per class (Extra Lesson Credits first).</p>`
+                : `<div class="badge amber" style="margin-top:12px">No credits available — you can't book an extra class right now.</div>`}
+    </div>
+    ${canBook ? bookingFormHTML("bk") : ""}`;
+  if (canBook) wireBookingForm("bk", c, "book", async (payload) => {
+    const r = await api("/book-extra", { method: "POST", body: payload });
+    toast(`Booked! Credit used: ${r.deductedFrom}.`, "ok");
+    await refreshChildren(); switchView("home");
+  });
+};
+
+// ---------- CLASS SCHEDULE: current class + request change ----------
+VIEWS.schedule = async function () {
+  const c = activeChild(); const root = $("#view-schedule");
+  root.innerHTML = `
+    <div class="panel">
+      <h3>Current class — ${esc(c?.childName || "")}</h3>
+      <div class="kv"><span class="k">Day &amp; time</span><span class="v">${esc((c?.lessonDay||[]).join(", ")||"—")} ${esc((c?.timeslot||[]).join(", "))}</span></div>
+      <div class="kv"><span class="k">Location</span><span class="v">${esc(c?.location || "—")}</span></div>
+      <div class="kv"><span class="k">Coach</span><span class="v">${esc(c?.coach || "—")}</span></div>
+    </div>
+    <div class="panel">
+      <h3>Request a class change</h3>
+      <p class="hint" style="text-align:left">Pick your new day, timeslot and the date it should take effect. Your current class stays active until the effective date.</p>
+      ${bookingFormHTML("ch", true)}
+    </div>`;
+  wireBookingForm("ch", c, "change", async (payload) => {
+    await api("/change-class", { method: "POST", body: { childId: payload.childId, day: payload.day, timeslot: payload.timeslot, effectiveDate: payload.effectiveDate } });
+    toast("Class change submitted.", "ok");
+    await refreshChildren(); switchView("home");
+  }, true);
+};
+
+// Shared booking form markup. mode "ch" adds an effective-date field instead of a class date.
+function bookingFormHTML(id, isChange = false) {
+  return `
+    <div class="panel">
+      <label class="section-label" style="margin-top:0">Day</label>
+      <select id="${id}-day"><option value="">Select a day…</option></select>
+      <div class="spacer"></div>
+      ${isChange
+        ? `<label class="section-label">Effective from</label><input id="${id}-eff" type="date" />`
+        : `<label class="section-label">Date</label><select id="${id}-date"><option value="">Select a day first…</option></select>`}
+      <div class="spacer"></div>
+      <label class="section-label">Timeslot</label>
+      <div id="${id}-slots"><div class="muted" style="font-size:14px">Select a day to see timeslots.</div></div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="${id}-submit" disabled>${isChange ? "Confirm class change" : "Book extra class"}</button>
+    </div>`;
+}
+
+async function wireBookingForm(id, child, scope, onSubmit, isChange = false) {
+  const daySel = $(`#${id}-day`), slotsBox = $(`#${id}-slots`), submit = $(`#${id}-submit`);
+  const dateSel = isChange ? null : $(`#${id}-date`);
+  const effInput = isChange ? $(`#${id}-eff`) : null;
+  let chosen = { day: "", date: "", timeslot: "" };
+
+  if (effInput) { effInput.min = new Date(Date.now() + 864e5).toISOString().slice(0, 10); }
+
+  let data;
+  try { data = await loadSlots(child.id, scope); }
+  catch (e) { slotsBox.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+
+  if (!data.days.length) { daySel.innerHTML = `<option value="">No slots available</option>`; slotsBox.innerHTML = `<div class="empty">No open slots right now. Please check back later.</div>`; return; }
+
+  daySel.innerHTML = `<option value="">Select a day…</option>` + data.days.map((d) => `<option value="${esc(d.day)}">${esc(d.day)}</option>`).join("");
+
+  function paintTimeslots(dayObj) {
+    if (!dayObj) { slotsBox.innerHTML = ""; return; }
+    slotsBox.innerHTML = dayObj.timeslots.map((t) => {
+      const full = t.slotsLeft <= 0;
+      return `<div class="slot ${full ? "disabled" : ""}" data-ts="${esc(t.timeslot)}">
+        <div><div class="title">${esc(t.timeslot)}</div><div class="meta">${esc(t.pool || "")}</div></div>
+        <span class="badge ${full ? "red" : t.slotsLeft <= 3 ? "amber" : "green"}">${full ? "Full" : t.slotsLeft + " / " + (t.cap || 10) + " left"}</span>
+      </div>`;
+    }).join("");
+    slotsBox.querySelectorAll(".slot").forEach((row) => {
+      if (row.classList.contains("disabled")) return;
+      row.onclick = () => {
+        slotsBox.querySelectorAll(".slot").forEach((r) => r.classList.remove("selected"));
+        row.classList.add("selected"); chosen.timeslot = row.dataset.ts; update();
+      };
+    });
+  }
+  function update() {
+    const dateOk = isChange ? !!effInput.value : !!chosen.date;
+    submit.disabled = !(chosen.day && dateOk && chosen.timeslot);
+  }
+
+  daySel.onchange = () => {
+    chosen = { day: daySel.value, date: "", timeslot: "" };
+    const dayObj = data.days.find((d) => d.day === daySel.value);
+    if (dateSel) {
+      dateSel.innerHTML = dayObj
+        ? `<option value="">Select a date…</option>` + dayObj.dates.map((d) => `<option value="${d}">${fmtDate(d)}</option>`).join("")
+        : `<option value="">Select a day first…</option>`;
+    }
+    paintTimeslots(dayObj); update();
+  };
+  if (dateSel) dateSel.onchange = () => { chosen.date = dateSel.value; update(); };
+  if (effInput) effInput.onchange = update;
+
+  submit.onclick = async () => {
+    submit.disabled = true; const label = submit.textContent; submit.textContent = "Submitting…";
+    try {
+      await onSubmit({ childId: child.id, day: chosen.day, timeslot: chosen.timeslot, date: chosen.date, effectiveDate: effInput ? effInput.value : undefined });
+    } catch (e) { toast(e.message, "err"); submit.disabled = false; submit.textContent = label; }
+  };
+}
+
+async function loadSlots(childId, scope) {
+  const key = childId + ":" + scope;
+  const data = await api(`/slots?childId=${encodeURIComponent(childId)}&scope=${scope}`);
+  state.slotsCache[key] = data; return data;
+}
+
+// ---------- PAYMENT ----------
+VIEWS.payment = async function () {
+  const root = $("#view-payment"); root.innerHTML = `<div class="loader">Loading payment details…</div>`;
+  try {
+    const data = await api("/payment");
+    root.innerHTML = data.children.map((c) => `
+      <div class="panel pay-card">
+        <h3 style="margin-top:0">${esc(c.childName)}</h3>
+        <div class="pay-dates">
+          <div class="pay-date"><div class="lbl">Term start</div><div class="val">${fmtDate(c.paidTermStart) || "—"}</div></div>
+          <div class="pay-date"><div class="lbl">Term end</div><div class="val">${fmtDate(c.paidTermEnd) || "—"}</div></div>
+        </div>
+        ${c.stripeUrl ? `<a class="btn btn-primary" href="${esc(c.stripeUrl)}" target="_blank" rel="noopener">💳 Open payment page</a>`
+                      : `<div class="badge amber">No payment link available yet.</div>`}
+      </div>`).join("") || `<div class="empty">No payment records.</div>`;
+  } catch (e) { root.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+};
+
+// ---------- MORE: support + pause/resume ----------
+VIEWS.more = function () {
+  const c = activeChild(); const root = $("#view-more");
+  const TYPES = [
+    "Operations (Service, TnC, Regulations, Lesson Arrangement))",
+    "Coach (Onsite, LA, PCC, Progression, Attitude of Coaches, Inappropriate actions, Curriculum, Can't find Coach, etc)",
+    "Accounts (Refund, Error Amount, Invoices, Receipt, etc)",
+    "Marketing (PDPA, Ad and postings related issues, etc)",
+    "Management (Pool, Locations, Rates, etc) ", "Call Request", "Equipment",
+  ];
+  const shortLabel = (t) => t.split("(")[0].trim();
+  const selected = new Set();
+  root.innerHTML = `
+    <div class="section-label" style="margin-top:0">Support</div>
+    <div class="panel">
+      <h3 style="margin-top:0">Raise an issue</h3>
+      <p class="hint" style="text-align:left">For ${esc(c?.childName || "your child")}. Our team will follow up with you.</p>
+      <div class="section-label" style="margin-top:6px">Category (optional)</div>
+      <div class="pills" id="tk-types">${TYPES.map((t, i) => `<button type="button" class="pill" data-i="${i}">${esc(shortLabel(t))}</button>`).join("")}</div>
+      <div class="spacer"></div>
+      <label class="section-label">Describe your issue *</label>
+      <textarea id="tk-concerns" placeholder="Tell us what's happening…"></textarea>
+      <div class="spacer"></div>
+      <label class="section-label">Suggestions (optional)</label>
+      <textarea id="tk-suggest" style="min-height:70px" placeholder="Anything we could do better?"></textarea>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="tk-submit">Submit ticket</button>
+    </div>
+    <div class="section-label">Lessons</div>
+    <div class="panel">
+      <h3 style="margin-top:0">Pause / Resume / Quit</h3>
+      <p class="hint" style="text-align:left">Request to pause, resume or quit lessons. <strong>Your request is not final</strong> — it will be reviewed and confirmed by our admin team, who will be in touch.</p>
+      <button class="btn btn-ghost" id="open-pause">Make a pause / resume request</button>
+    </div>
+    <div class="panel">
+      <div class="kv"><span class="k">Signed in as</span><span class="v">${esc(state.parentName)}</span></div>
+      <div class="spacer"></div>
+      <button class="btn btn-danger" id="more-logout">Log out</button>
+    </div>`;
+  root.querySelectorAll("#tk-types .pill").forEach((p) => {
+    p.onclick = () => { const t = TYPES[+p.dataset.i]; if (selected.has(t)) { selected.delete(t); p.classList.remove("on"); } else { selected.add(t); p.classList.add("on"); } };
+  });
+  $("#tk-submit").onclick = async () => {
+    const concerns = $("#tk-concerns").value.trim();
+    if (!concerns) return toast("Please describe your issue.", "err");
+    const btn = $("#tk-submit"); btn.disabled = true; btn.textContent = "Submitting…";
+    try {
+      await api("/ticket", { method: "POST", body: { childId: c.id, complaintTypes: [...selected], concerns, suggestions: $("#tk-suggest").value.trim() } });
+      toast("Ticket submitted. We'll be in touch.", "ok"); switchView("home");
+    } catch (e) { toast(e.message, "err"); btn.disabled = false; btn.textContent = "Submit ticket"; }
+  };
+  $("#open-pause").onclick = openPauseModal;
+  $("#more-logout").onclick = logout;
+};
+
+function openPauseModal() {
+  const c = activeChild(); const backdrop = $("#modal-backdrop"); const modal = $("#modal");
+  modal.innerHTML = `
+    <h3>Pause / Resume — ${esc(c?.childName || "")}</h3>
+    <div class="badge amber" style="margin-bottom:10px">Requests are confirmed by our admin team after review.</div>
+    <label class="section-label" style="margin-top:0">Request type</label>
+    <select id="pr-type">
+      <option value="pause (paid)">Pause lessons (paid up)</option>
+      <option value="pause (not paid)">Pause lessons (not paid)</option>
+      <option value="resume">Resume / rejoin lessons</option>
+      <option value="quit">Quit lessons</option>
+    </select>
+    <div class="spacer"></div>
+    <div id="pr-reason-wrap">
+      <label class="section-label" style="margin-top:0">Reason</label>
+      <select id="pr-reason">${state.pauseReasons.map((r) => `<option>${esc(r)}</option>`).join("")}</select>
+      <div class="spacer"></div>
+    </div>
+    <label class="section-label" style="margin-top:0" id="pr-msg-label">Message (optional)</label>
+    <textarea id="pr-msg" style="min-height:80px" placeholder="Anything you'd like to add…"></textarea>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="pr-submit">Submit request</button>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" id="pr-cancel">Cancel</button>`;
+  backdrop.hidden = false; backdrop.classList.add("show");
+  const typeSel = $("#pr-type"), reasonWrap = $("#pr-reason-wrap"), msgLabel = $("#pr-msg-label");
+  typeSel.onchange = () => {
+    const resume = typeSel.value === "resume";
+    reasonWrap.style.display = resume ? "none" : "block";
+    msgLabel.textContent = resume ? "Preferred resume date (YYYY-MM-DD) or message" : "Message (optional)";
+  };
+  const close = () => { backdrop.hidden = true; backdrop.classList.remove("show"); };
+  $("#pr-cancel").onclick = close;
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  $("#pr-submit").onclick = async () => {
+    const btn = $("#pr-submit"); btn.disabled = true; btn.textContent = "Submitting…";
+    try {
+      await api("/pause-resume", { method: "POST", body: { childId: c.id, type: typeSel.value,
+        reason: typeSel.value === "resume" ? undefined : $("#pr-reason").value, message: $("#pr-msg").value.trim() } });
+      close(); toast("Request submitted. Our admin team will confirm.", "ok"); await refreshChildren();
+    } catch (e) { toast(e.message, "err"); btn.disabled = false; btn.textContent = "Submit request"; }
+  };
+}
+
+// ---------- helpers ----------
+async function refreshChildren() {
+  const me = await api("/me"); state.children = me.children || [];
+  if (!state.children.find((c) => c.id === state.activeChildId)) state.activeChildId = state.children[0]?.id || null;
+  state.slotsCache = {}; renderChildSwitcher();
+}
+function enrolBadge(status) {
+  if (!status) return ""; const s = status.toLowerCase();
+  const cls = s.includes("enrol") ? "green" : s.includes("pause") ? "amber" : s.includes("quit") ? "red" : "blue";
+  return `<span class="badge ${cls}">${esc(status)}</span>`;
+}
+function fmtDate(d) {
+  if (!d) return ""; const dt = new Date(d); if (isNaN(dt)) return String(d);
+  return dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+// ---------- wiring ----------
+$("#login-form").addEventListener("submit", async (e) => {
+  e.preventDefault(); const btn = $("#login-btn"), err = $("#login-error"); err.hidden = true;
+  btn.disabled = true; btn.textContent = "Logging in…";
+  try { await doLogin($("#phone").value); }
+  catch (ex) { err.textContent = ex.message; err.hidden = false; }
+  finally { btn.disabled = false; btn.textContent = "Log in"; }
+});
+$("#logout-btn").addEventListener("click", logout);
+$("#side-logout")?.addEventListener("click", logout);
+document.querySelectorAll(".navbtn").forEach((t) => (t.onclick = () => switchView(t.dataset.view)));
+
+(async function init() {
+  const t = loadSession();
+  if (t) { state.token = t; try { await bootApp(); } catch { logout(); } }
+})();
+
+</script>
 </body>
 </html>
