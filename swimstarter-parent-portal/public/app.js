@@ -46,6 +46,7 @@ async function bootApp() {
   try { state.pauseReasons = (await api("/pause-reasons")).reasons || []; } catch {}
   $("#login-screen").classList.remove("active"); $("#app-screen").classList.add("active");
   $("#hello").textContent = "Hello, " + (state.parentName || "Parent");
+  const su = $("#side-user"); if (su) su.textContent = state.parentName || "Parent";
   renderChildSwitcher(); switchView("home");
 }
 
@@ -65,7 +66,7 @@ function switchView(view) {
   state.view = view; $("#page-title").textContent = TITLES[view] || "";
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   $("#view-" + view)?.classList.add("active");
-  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === view));
+  document.querySelectorAll(".navbtn").forEach((t) => t.classList.toggle("active", t.dataset.view === view));
   window.scrollTo(0, 0); renderView();
 }
 function renderView() { VIEWS[state.view]?.(); }
@@ -462,7 +463,8 @@ $("#login-form").addEventListener("submit", async (e) => {
   finally { btn.disabled = false; btn.textContent = "Log in"; }
 });
 $("#logout-btn").addEventListener("click", logout);
-document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => switchView(t.dataset.view)));
+$("#side-logout")?.addEventListener("click", logout);
+document.querySelectorAll(".navbtn").forEach((t) => (t.onclick = () => switchView(t.dataset.view)));
 
 (async function init() {
   const t = loadSession();
